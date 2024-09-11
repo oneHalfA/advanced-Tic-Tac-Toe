@@ -1,2 +1,2 @@
-exec: XO.c
-	gcc -o exec XO.c
+xo: XO.c
+	gcc -o xo XO.c
