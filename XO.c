@@ -7,9 +7,9 @@
 
 // ==============================================VARIABLES/STRUCTURES
 int board[9][9] = {
-    {'O','O',' ',	' ',' ',' ',	'X','X','X'},
-    {' ',' ',' ',	' ',' ',' ',	'X','X','X'},
-    {' ',' ',' ',	' ',' ',' ',	'X','X',' '},
+    {' ',' ',' ',	' ',' ',' ',	' ',' ',' '},
+    {' ',' ',' ',	' ',' ',' ',	' ',' ',' '},
+    {' ',' ',' ',	' ',' ',' ',	' ',' ',' '},
 
     {' ',' ',' ',	' ',' ',' ',	' ',' ',' '},
     {' ',' ',' ',	' ',' ',' ',	' ',' ',' '},
@@ -48,7 +48,82 @@ int wPossibilities[8][3] =
     {2,4,6}
 };
 
-// ==============================================FUNCTIONS
+// ==============================================FUNCTIONS DECLARATION
+void drawBoard(void);
+void clear_screen(void);
+void computerMove(int *gridNum);
+struct SubGridMap *convertToRealSquare(int square,int gridNum); // To find the position of square in main board (square is given to programm by user)
+void drawSubGrid(int num); 
+void fillTheSubGrid(int gridNum); // If one of Players won a sub-grid, this function overwrite the whole sub-grid (sign to show that this sub-grid is captured)
+void changeState(int gridNum); // To change state of particular sub-grid to one of {-1(Undefined) , 0(Tie) , 1(O won) , 2(X won)}
+int winCheck(int gridNum); // Check if won in each sub-grid
+bool isEmpty(int gridNum); // check if a sub-grid is still empty
+bool playerMove(int square,int *gridNum); 
+// ==============================================MAIN
+
+int main(void){
+
+    struct termios tty;
+    tcgetattr(STDIN_FILENO, &tty);
+    tty.c_lflag &= ~ICANON;
+    tcsetattr(STDIN_FILENO,TCSANOW, &tty);
+
+    srand(time(NULL));
+    int currentSubGrid = 0,previousSubGrid;
+    while(true){
+	
+	clear_screen();
+	drawBoard();
+	printf("Press any key to start (e.g. Enter)\n");
+	
+	getchar();
+	drawSubGrid(currentSubGrid);
+	printf("which square? ");
+
+	while(true){
+	    previousSubGrid = currentSubGrid;
+	    if(sub_grid[previousSubGrid].state != -1){
+		printf("\n[P] Selected sub grid is filled.So..\n");
+		usleep(2500000);
+		clear_screen();
+		drawBoard();
+		printf("sub-grid: \n");
+		currentSubGrid = (int)getchar() - 49;
+		break;
+	    }
+	    bool success = playerMove( (int)getchar() - 48 ,&currentSubGrid);
+	    printf("\n\n\n\n");
+	    if(success){
+		
+		changeState(previousSubGrid);
+		if(sub_grid[previousSubGrid].state == 1)
+		    fillTheSubGrid(previousSubGrid);
+
+		previousSubGrid = currentSubGrid;
+		if(sub_grid[previousSubGrid].state != -1){
+		    printf("[C] Selected sub grid is filled.\n");
+		    while(sub_grid[previousSubGrid].state != -1)
+			currentSubGrid = previousSubGrid = rand() % 9;
+		}
+		computerMove(&currentSubGrid);
+		printf("\n\n\nCOMPUTER CHOOSING A MOVE....\n\n");
+		usleep(1500000);
+		drawSubGrid(previousSubGrid);
+		
+		
+		changeState(previousSubGrid);
+		if(sub_grid[previousSubGrid].state == 2)
+		    fillTheSubGrid(previousSubGrid);
+		fflush(stdout);
+		usleep(2000000);
+		break;
+	    }
+
+	}
+    }
+    return 0;
+}
+// ================================================================FUNCTIONS DEFINITIONS
 
 void clear_screen(void){
     printf("\033[2J\033[H");
@@ -168,8 +243,8 @@ int winCheck(int gridNum){
 	    return 1; // Player has won this sub grid
 	}else {
 	    if(isEmpty(gridNum))
-		return -1;
-	    return 0; // that sub grid does not belong to any one (Tie) 
+		return -1; // that sub grid does not belong to any one (Tie) 
+	    return 0; 
 	}
     }
 }
@@ -206,68 +281,4 @@ void fillTheSubGrid(int gridNum){
     for(int i=sub_grid[gridNum].row;i<sub_grid[gridNum].row+3;i++)
 	for(int j=sub_grid[gridNum].col;j<sub_grid[gridNum].col+3;j++)	    
 	    board[i][j] = winner;
-}
-// ==============================================MAIN
-
-int main(void){
-
-    struct termios tty;
-    tcgetattr(STDIN_FILENO, &tty);
-    tty.c_lflag &= ~ICANON;
-    tcsetattr(STDIN_FILENO,TCSANOW, &tty);
-
-    srand(time(NULL));
-    int currentSubGrid = 0,previousSubGrid;
-    while(true){
-	
-	clear_screen();
-	drawBoard();
-	printf("Press any key to start (e.g. Enter)\n");
-	
-	getchar();
-	drawSubGrid(currentSubGrid);
-	printf("which square? ");
-
-	while(true){
-	    previousSubGrid = currentSubGrid;
-	    if(sub_grid[previousSubGrid].state != -1){
-		printf("\n[P] Selected sub grid is filled.So..\n");
-		usleep(2500000);
-		clear_screen();
-		drawBoard();
-		printf("sub-grid: \n");
-		currentSubGrid = (int)getchar() - 49;
-		break;
-	    }
-	    bool success = playerMove( (int)getchar() - 48 ,&currentSubGrid);
-	    printf("\n\n\n\n");
-	    if(success){
-		
-		changeState(previousSubGrid);
-		if(sub_grid[previousSubGrid].state == 1)
-		    fillTheSubGrid(previousSubGrid);
-
-		previousSubGrid = currentSubGrid;
-		if(sub_grid[previousSubGrid].state != -1){
-		    printf("[C] Selected sub grid is filled.\n");
-		    while(sub_grid[previousSubGrid].state != -1)
-			currentSubGrid = previousSubGrid = rand() % 9;
-		}
-		computerMove(&currentSubGrid);
-		printf("\n\n\nCOMPUTER CHOOSING A MOVE....\n\n");
-		usleep(1500000);
-		drawSubGrid(previousSubGrid);
-		
-		
-		changeState(previousSubGrid);
-		if(sub_grid[previousSubGrid].state == 2)
-		    fillTheSubGrid(previousSubGrid);
-		fflush(stdout);
-		usleep(2000000);
-		break;
-	    }
-
-	}
-    }
-    return 0;
 }
