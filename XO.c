@@ -56,7 +56,7 @@ struct SubGridMap *convertToRealSquare(int square,int gridNum); // To find the p
 void drawSubGrid(int num); 
 void fillTheSubGrid(int gridNum); // If one of Players won a sub-grid, this function overwrite the whole sub-grid (sign to show that this sub-grid is captured)
 void changeState(int gridNum); // To change state of particular sub-grid to one of {-1(Undefined) , 0(Tie) , 1(O won) , 2(X won)}
-int winCheck(int gridNum); // Check if won in each sub-grid
+int winCheck(int gridNum); // Check the state (won,tie,lost) in a particular sub-grid
 bool isEmpty(int gridNum); // check if a sub-grid is still empty
 bool playerMove(int square,int *gridNum); 
 // ==============================================MAIN
@@ -69,21 +69,24 @@ int main(void){
     tcsetattr(STDIN_FILENO,TCSANOW, &tty);
 
     srand(time(NULL));
-    int currentSubGrid = 0,previousSubGrid;
+    int currentSubGrid = 2,previousSubGrid;
+    int tracker = 0;
     while(true){
 	
 	clear_screen();
 	drawBoard();
-	printf("Press any key to start (e.g. Enter)\n");
+	if(!tracker++)
+	    printf("\nComputer: [X] &  Player: [O]");
+	printf("\nCurrent playing Sub-Grid: %d\nPress any key to start (e.g. Enter)\n",currentSubGrid+1);
 	
 	getchar();
 	drawSubGrid(currentSubGrid);
-	printf("which square? ");
+	printf("which square? [O] \n");
 
 	while(true){
 	    previousSubGrid = currentSubGrid;
 	    if(sub_grid[previousSubGrid].state != -1){
-		printf("\n[P] Selected sub grid is filled.So..\n");
+		printf("\n[O] Selected sub grid is filled.So..\n");
 		usleep(2500000);
 		clear_screen();
 		drawBoard();
@@ -92,8 +95,8 @@ int main(void){
 		break;
 	    }
 	    bool success = playerMove( (int)getchar() - 48 ,&currentSubGrid);
-	    printf("\n\n\n\n");
 	    if(success){
+		printf("\n\n\n");
 		
 		changeState(previousSubGrid);
 		if(sub_grid[previousSubGrid].state == 1)
@@ -101,12 +104,11 @@ int main(void){
 
 		previousSubGrid = currentSubGrid;
 		if(sub_grid[previousSubGrid].state != -1){
-		    printf("[C] Selected sub grid is filled.\n");
+		    printf("[X] Selected sub grid is filled.\n");
 		    while(sub_grid[previousSubGrid].state != -1)
 			currentSubGrid = previousSubGrid = rand() % 9;
 		}
 		computerMove(&currentSubGrid);
-		printf("\n\n\nCOMPUTER CHOOSING A MOVE....\n\n");
 		usleep(1500000);
 		drawSubGrid(previousSubGrid);
 		
@@ -192,6 +194,7 @@ struct SubGridMap *convertToRealSquare(int square,int gridNum){
 
 void computerMove(int *gridNum){
     int square = rand() % 9;
+
     struct SubGridMap *real = convertToRealSquare(square,*gridNum);
     while(board[real->row][real->col] != ' '){
 	free(real);
@@ -201,6 +204,9 @@ void computerMove(int *gridNum){
     board[real->row][real->col] = 'X';
     *gridNum = square;
     free(real);
+    printf("COMPUTER CHOOSING A MOVE....\n\n");
+    usleep(1200000);
+    printf("[X] Computer chose: %d \n",square + 1);
 }
 
 bool playerMove(int square,int *gridNum){
@@ -228,36 +234,48 @@ bool isEmpty(int gridNum){
 }
 
 int winCheck(int gridNum){
+    
+    struct SubGridMap *real[3];
+    
     for(int win=0;win<8;win++){
 
-	struct SubGridMap *real[3] ={
-	    convertToRealSquare(wPossibilities[win][0],gridNum),
-	    convertToRealSquare(wPossibilities[win][1],gridNum),
-	    convertToRealSquare(wPossibilities[win][2],gridNum)
-    
-	};
+	real[0] = convertToRealSquare(wPossibilities[win][0],gridNum);
+	real[1] = convertToRealSquare(wPossibilities[win][1],gridNum);
+	real[2] = convertToRealSquare(wPossibilities[win][2],gridNum);   
 
 	if( board[real[0]->row][real[0]->col] == 'X' && board[real[1]->row][real[1]->col] == 'X' && board[real[2]->row][real[2]->col] == 'X' ){
+	    
+	    for(int i=0;i<3;i++)
+		free(real[i]);
 	    return 2; //computer has won this sub grid
+	    
 	}else if( board[real[0]->row][real[0]->col] == 'O' && board[real[1]->row][real[1]->col] == 'O' && board[real[2]->row][real[2]->col] == 'O' ){
+
+	    for(int i=0;i<3;i++)
+		free(real[i]);
+
 	    return 1; // Player has won this sub grid
-	}else {
-	    if(isEmpty(gridNum))
-		return -1; // that sub grid does not belong to any one (Tie) 
-	    return 0; 
 	}
+	
+	for(int i=0;i<3;i++)
+	    free(real[i]);
+	
     }
+    if(isEmpty(gridNum))
+	return -1; // that sub grid does not belong to any one (Tie)
+    
+    return 0; 
 }
 
 void changeState(int gridNum){
     int state = winCheck(gridNum);
     switch(state){
 	case 1:
-	    printf("[P] has won sub-grid number %d \n",1+gridNum);
+	    printf("[O] has won sub-grid number %d \n",1+gridNum);
 	    sub_grid[gridNum].state = 1;
 	    break;
 	case 2:
-	    printf("\n\n[C] has won sub-grid number %d \n",1+gridNum);
+	    printf("\n\n[X] has won sub-grid number %d \n",1+gridNum);
 	    sub_grid[gridNum].state = 2;
 	    break;
 	case 0:
