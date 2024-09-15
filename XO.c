@@ -52,13 +52,14 @@ int wPossibilities[8][3] =
 void drawBoard(void);
 void clear_screen(void);
 void computerMove(int *gridNum);
-struct SubGridMap *convertToRealSquare(int square,int gridNum); // To find the position of square in main board (square is given to programm by user)
+struct SubGridMap *convertToRealSquare(int square,int gridNum); // to find the position of square on main board (the square is provided to the programm by the user)
 void drawSubGrid(int num); 
-void fillTheSubGrid(int gridNum); // If one of Players won a sub-grid, this function overwrite the whole sub-grid (sign to show that this sub-grid is captured)
-void changeState(int gridNum); // To change state of particular sub-grid to one of {-1(Undefined) , 0(Tie) , 1(O won) , 2(X won)}
-int winCheck(int gridNum); // Check the state (won,tie,lost) in a particular sub-grid
+void fillTheSubGrid(int gridNum); // if one of the players won a sub-grid, this function overwrites the whole sub-grid (sign to show that this sub-grid is captured)
+void changeState(int gridNum); // to change the state of a particular sub-grid to one of {-1 (Undefined), 0 (Tie), 1 (O won), 2 (X won)}
+int winCheck(int gridNum); // check the state (won,tie,lost) in a particular sub-grid
 bool isEmpty(int gridNum); // check if a sub-grid is still empty
 bool playerMove(int square,int *gridNum); 
+void gameOverCheck(void); // exit if either player has won or if it is a tie
 // ==============================================MAIN
 
 int main(void){
@@ -67,9 +68,8 @@ int main(void){
     tcgetattr(STDIN_FILENO, &tty);
     tty.c_lflag &= ~ICANON;
     tcsetattr(STDIN_FILENO,TCSANOW, &tty);
-
     srand(time(NULL));
-    int currentSubGrid = 2,previousSubGrid;
+    int currentSubGrid = rand() % 9,previousSubGrid;
     int tracker = 0;
     while(true){
 	
@@ -99,6 +99,7 @@ int main(void){
 		printf("\n\n\n");
 		
 		changeState(previousSubGrid);
+		gameOverCheck();
 		if(sub_grid[previousSubGrid].state == 1)
 		    fillTheSubGrid(previousSubGrid);
 
@@ -114,10 +115,11 @@ int main(void){
 		
 		
 		changeState(previousSubGrid);
+		gameOverCheck();
 		if(sub_grid[previousSubGrid].state == 2)
 		    fillTheSubGrid(previousSubGrid);
 		fflush(stdout);
-		usleep(2000000);
+		usleep(1500000);
 		break;
 	    }
 
@@ -306,7 +308,7 @@ void changeState(int gridNum){
     int state = winCheck(gridNum);
     switch(state){
 	case 1:
-	    printf("[O] has won sub-grid number %d \n",1+gridNum);
+	    printf("[O] has won sub-grid number %d \n\n",1+gridNum);
 	    sub_grid[gridNum].state = 1;
 	    break;
 	case 2:
@@ -334,4 +336,27 @@ void fillTheSubGrid(int gridNum){
     for(int i=sub_grid[gridNum].row;i<sub_grid[gridNum].row+3;i++)
 	for(int j=sub_grid[gridNum].col;j<sub_grid[gridNum].col+3;j++)	    
 	    board[i][j] = winner;
+}
+
+void gameOverCheck(void){
+    for(int p=0;p<8;p++){
+	if(sub_grid[wPossibilities[p][0]].state == 1 && sub_grid[wPossibilities[p][1]].state == 1 && sub_grid[wPossibilities[p][2]].state == 1){
+	    clear_screen();
+	    drawBoard();
+	    printf("\nCongragulation!\n[O] won :)");
+	    exit(0);
+	}else if(sub_grid[wPossibilities[p][0]].state == 2 && sub_grid[wPossibilities[p][1]].state == 2 && sub_grid[wPossibilities[p][2]].state == 2){
+	    clear_screen();
+	    drawBoard();
+	    printf("\nOOPS!\n[O] failed");
+	    exit(0);
+	}
+    }
+    for(int i=0;i<8;i++){
+	if(sub_grid[i].state == -1)
+	    return;
+    }
+    drawBoard();
+    printf("\nTIE :|\n");
+    exit(0);
 }
