@@ -193,20 +193,55 @@ struct SubGridMap *convertToRealSquare(int square,int gridNum){
 }
 
 void computerMove(int *gridNum){
-    int square = rand() % 9;
-
-    struct SubGridMap *real = convertToRealSquare(square,*gridNum);
-    while(board[real->row][real->col] != ' '){
-	free(real);
-	square = rand() % 9;
-	real = convertToRealSquare(square,*gridNum);
+    int empty[9],len=0;
+    
+    for(int number=0,i=sub_grid[*gridNum].row;i<sub_grid[*gridNum].row+3;i++){
+	for(int j=sub_grid[*gridNum].col;j<sub_grid[*gridNum].col+3;j++,number++){
+	    if(board[i][j] == ' ')
+		empty[len++] = number; 
+	}
     }
-    board[real->row][real->col] = 'X';
-    *gridNum = square;
-    free(real);
-    printf("COMPUTER CHOOSING A MOVE....\n\n");
-    usleep(1200000);
-    printf("[X] Computer chose: %d \n",square + 1);
+    
+    struct SubGridMap *real;
+    
+    bool winning = false;
+    for (int i=0;i<len;i++){
+	
+	real = convertToRealSquare(empty[i],*gridNum);
+	board[real->row][real->col] = 'X';
+
+	if(winCheck(*gridNum)==2){
+	    winning = true;
+	    *gridNum = empty[i];
+	    free(real);
+
+	    printf("COMPUTER CHOOSING A MOVE....\n\n");
+	    usleep(1200000);
+	    printf("[X] Computer chose: %d \n",empty[i] + 1);
+	    break;
+	}
+	board[real->row][real->col] = ' ';
+	free(real);
+    }
+
+    if(winning == false)
+	for(int i=0;i<len;i++){
+	    real = convertToRealSquare(empty[i],*gridNum);
+	    board[real->row][real->col] = 'O';
+	    if(winCheck(*gridNum)==1 || i+1 == len){
+		board[real->row][real->col] = 'X';
+		winning = true;
+		*gridNum = empty[i];
+		free(real);
+
+		printf("COMPUTER CHOOSING A MOVE....\n\n");
+		usleep(1200000);
+		printf("[X] Computer chose: %d \n",empty[i] + 1);
+		break;
+	    }
+	    board[real->row][real->col] = ' ';
+	    free(real);
+	}	
 }
 
 bool playerMove(int square,int *gridNum){
